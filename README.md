@@ -1,49 +1,50 @@
 # ALX Travel App Backend
 
-The ALX Travel App is a Django-based backend for a travel listing platform, designed with industry best practices for scalability, maintainability, and team collaboration.
+The ALX Travel App is a Django-based backend for a travel listing platform with integrated payment processing. It's designed with industry best practices for scalability, maintainability, and team collaboration.
 
-## Features
+## Key Features
 
 - **RESTful API** built with Django REST Framework
+- **Chapa Payment Gateway** integration for secure payments
 - **Comprehensive Documentation** with Swagger UI and ReDoc
 - **Secure Authentication** (Session-based)
 - **Data Validation** with DRF serializers
 - **Versioned API** (v1)
 - **Filtering & Search** for listings and bookings
-- **MySQL Database** for production
+- **MySQL/PostgreSQL** database support
 - **Environment-based** configuration
 - **CORS Support** for cross-domain requests
+- **Asynchronous Email Notifications**
+
+## Tech Stack
+
+- **Backend**: Django 4.2+
+- **Database**: PostgreSQL/MySQL
+- **Payment Processing**: Chapa API
+- **Task Queue**: Celery with Redis
+- **API Documentation**: Swagger/ReDoc
+- **Testing**: Django Test Framework
 
 ## Table of Contents
 
 - [ALX Travel App Backend](#alx-travel-app-backend)
-  - [Features](#features)
+  - [Key Features](#key-features)
+  - [Tech Stack](#tech-stack)
   - [Table of Contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Configuration](#configuration)
   - [API Documentation](#api-documentation)
     - [Interactive Documentation](#interactive-documentation)
-    - [Authentication](#authentication)
-    - [Endpoints](#endpoints)
+    - [Available Endpoints](#available-endpoints)
       - [Listings](#listings)
       - [Bookings](#bookings)
-    - [Examples](#examples)
-      - [Create a Listing](#create-a-listing)
-      - [Create a Booking](#create-a-booking)
-      - [Filter Listings](#filter-listings)
+      - [Payments](#payments)
+  - [Payment Integration](#payment-integration)
+    - [Payment Flow](#payment-flow)
   - [Testing](#testing)
     - [Running Tests](#running-tests)
-    - [Test Coverage](#test-coverage)
   - [Project Structure](#project-structure)
   - [License](#license)
-
-## Prerequisites
-
-- Python 3.12+
-- MySQL 8.0+
-- Celery (for async tasks, future development)
-- Git
 
 ## Installation
 
@@ -53,6 +54,7 @@ The ALX Travel App is a Django-based backend for a travel listing platform, desi
    git clone https://github.com/your-username/alx_travel_app.git
    cd alx_travel_app
    ```
+
 2. **Set up virtual environment**
 
    ```bash
@@ -62,6 +64,7 @@ The ALX Travel App is a Django-based backend for a travel listing platform, desi
    # Unix/macOS
    source venv/bin/activate
    ```
+
 3. **Install dependencies**
 
    ```bash
@@ -71,7 +74,7 @@ The ALX Travel App is a Django-based backend for a travel listing platform, desi
 ## Configuration
 
 1. **Environment Variables**
-   Create a `.env` file in the project root:
+   Create a `.env` file in the project root based on `.env.example`:
 
    ```env
    # Django Settings
@@ -80,23 +83,31 @@ The ALX Travel App is a Django-based backend for a travel listing platform, desi
    ALLOWED_HOSTS=localhost,127.0.0.1
 
    # Database
+   DB_ENGINE=django.db.backends.postgresql
    DB_NAME=alx_travel_db
-   DB_USER=alx_user
+   DB_USER=db_user
    DB_PASSWORD=your_secure_password
    DB_HOST=localhost
-   DB_PORT=3306
+   DB_PORT=5432
 
-   # Celery (for async tasks)
-   CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//
+   # Chapa Payment Settings
+   CHAPA_SECRET_KEY=your_chapa_secret_key
+   CHAPA_WEBHOOK_DOMAIN=your_webhook_domain
+   
+   # Email Settings
+   EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend  # For development
+   DEFAULT_FROM_EMAIL=noreply@example.com
    ```
+
 2. **Database Setup**
+   - For PostgreSQL:
 
-   ```sql
-   CREATE DATABASE alx_travel_db;
-   CREATE USER 'alx_user'@'localhost' IDENTIFIED BY 'your_secure_password';
-   GRANT ALL PRIVILEGES ON alx_travel_db.* TO 'alx_user'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
+     ```sql
+     CREATE DATABASE alx_travel_db;
+     CREATE USER db_user WITH PASSWORD 'your_secure_password';
+     GRANT ALL PRIVILEGES ON DATABASE alx_travel_db TO db_user;
+     ```
+
 3. **Run Migrations**
 
    ```bash
@@ -110,19 +121,7 @@ The ALX Travel App is a Django-based backend for a travel listing platform, desi
 - **Swagger UI**: [http://localhost:8000/api/docs/](http://localhost:8000/api/docs/)
 - **ReDoc**: [http://localhost:8000/api/redoc/](http://localhost:8000/api/redoc/)
 
-### Authentication
-
-```http
-POST /api/v1/auth/login/
-Content-Type: application/json
-
-{
-   "username": "your_username",
-   "password": "your_password"
-}
-```
-
-### Endpoints
+### Available Endpoints
 
 #### Listings
 
@@ -141,40 +140,29 @@ Content-Type: application/json
 - `PUT/PATCH /api/v1/bookings/{id}/` - Update booking
 - `DELETE /api/v1/bookings/{id}/` - Delete booking
 
-### Examples
+#### Payments
 
-#### Create a Listing
+- `POST /api/v1/payments/initiate/` - Initiate payment
+- `POST /api/v1/payments/verify/` - Verify payment status
+- `POST /api/v1/payments/webhook/` - Chapa webhook (for payment callbacks)
 
-```http
-POST /api/v1/listings/
-Content-Type: application/json
+## Payment Integration
 
-{
-   "title": "Beachfront Villa",
-   "description": "Luxury villa with ocean view",
-   "price_per_night": "250.00",
-   "max_guests": 6
-}
-```
+The application integrates with Chapa payment gateway for processing payments. Key features:
 
-#### Create a Booking
+- Multiple payment methods support (Telebirr, CBE Birr, Ebirr, M-Pesa)
+- Secure payment processing with transaction verification
+- Webhook support for payment status updates
+- Email notifications for payment events
 
-```http
-POST /api/v1/bookings/
-Content-Type: application/json
+### Payment Flow
 
-{
-   "listing": 1,
-   "start_date": "2025-08-15",
-   "end_date": "2025-08-22"
-}
-```
-
-#### Filter Listings
-
-```http
-GET /api/v1/listings/?max_price=300
-```
+1. User creates a booking
+2. System generates a payment request
+3. User is redirected to Chapa checkout
+4. After payment, Chapa sends a webhook notification
+5. System updates payment and booking status
+6. User receives confirmation email
 
 ## Testing
 
@@ -184,16 +172,10 @@ GET /api/v1/listings/?max_price=300
 # Run all tests
 python manage.py test
 
-# Run a specific test case
+# Run specific test case
 python manage.py test listings.tests.ModelTests
 
-# Run a specific test method
-python manage.py test listings.tests.ModelTests.test_listing_creation
-```
-
-### Test Coverage
-
-```bash
+# Run with coverage
 coverage run manage.py test
 coverage report
 ```
@@ -209,17 +191,22 @@ alx_travel_app/
 │
 ├── alx_travel_app/         # Main project package
 │   ├── __init__.py
-│   ├── settings.py         # Project settings
+│   ├── settings/           # Settings directory
+│   │   ├── base.py         # Base settings
+│   │   ├── development.py  # Development settings
+│   │   └── production.py   # Production settings
 │   ├── urls.py            # Main URL configuration
 │   └── wsgi.py            # WSGI config
 │
 └── listings/              # Listings application
     ├── migrations/        # Database migrations
+    ├── management/        # Custom management commands
     ├── __init__.py
     ├── admin.py          # Admin configuration
     ├── apps.py           # App configuration
     ├── models.py         # Database models
     ├── serializers.py    # API serializers
+    ├── tasks.py          # Celery tasks
     ├── tests.py          # Application tests
     ├── urls.py          # App URL routes
     └── views.py         # API views
@@ -227,4 +214,4 @@ alx_travel_app/
 
 ## License
 
-This project is for educational purpose within the ALX ProDEV program.
+This project is for educational purposes within the ALX ProDEV program.
