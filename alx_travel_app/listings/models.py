@@ -57,3 +57,24 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.rating} stars for {self.listing.title}"
+
+class Payment(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "Pending"
+        COMPLETED = "Completed"
+        FAILED = "Failed"
+
+    booking_reference = models.CharField(max_length=64, db_index=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=8, default="ETB")  # Why: keep flexible
+    tx_ref = models.CharField(max_length=64, unique=True)
+    chapa_txn_id = models.CharField(max_length=64, blank=True)
+    checkout_url = models.URLField(blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    raw_init_response = models.JSONField(default=dict, blank=True)
+    raw_verify_response = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"{self.booking_reference} | {self.tx_ref} | {self.status}"

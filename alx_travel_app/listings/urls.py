@@ -10,7 +10,8 @@ from . import views
 
 # Create a router for API endpoints
 router = DefaultRouter()
-router.register(r"listings", views.ListingViewSet, basename="listing")
+router.register(r"", views.ListingViewSet, basename="listing")
+#router.register(r"listings", views.ListingViewSet, basename="listing")
 router.register(r"bookings", views.BookingViewSet, basename="booking")
 
 # Schema view for app-specific documentation
@@ -56,4 +57,7 @@ urlpatterns = [
         app_schema_view.with_ui("redoc", cache_timeout=0),
         name="schema-redoc",
     ),
+    path("payments/initiate/", views.initiate_payment, name="payments-initiate"),
+    path("payments/verify/<str:tx_ref>/", views.verify_payment, name="payments-verify"),
+    path("payments/callback/", views.chapa_callback, name="payments-callback"),
 ]
